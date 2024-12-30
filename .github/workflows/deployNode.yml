@@ -1,4 +1,4 @@
-name: Deploy to AWS Server
+name: CI/CD Pipeline for Node.js App
 
 on:
   push:
@@ -10,43 +10,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the Code
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      # - name: Install AWS CLI
-      #   run: |
-      #     sudo apt-get update
-      #     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      #     unzip awscliv2.zip
-      #     sudo ./aws/install --update
-      #       aws --version
-
-      # - name: Configure AWS Credentials
-      #   run: |
-      #     echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
-      #     echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_EN# Configure AWS Credentials
-      - name: configure aws credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      # Setup Node.js Environment
+      - name: Set Up Node.js
+        uses: actions/setup-node@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}       
-        
-  
+          node-version: '18'
 
+      # Install Dependencies
+      - name: Install Dependencies
+        run: npm install
+
+      # Allow SSH Access Dynamically
       - name: Allow SSH Access from Runner IP
-        run: |
-          # aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
-          # aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          # aws configure set region ${{ secrets.AWS_REGION }}
-          IP=$(curl -s https://api64.ipify.org)
-          aws ec2 authorize-security-group-ingress \
-            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr ${IP}/32 \
-            --region ${{ secrets.AWS_REGION }}
+        run: node scripts/manage-ssh-access.js allow
 
+      # Deploy Code to Server
       - name: Copy Files to Server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -56,34 +38,24 @@ jobs:
           source: "."
           target: "~/node-app"
 
-      - name: Install Node.js and PM2
+      # Run Node.js and PM2 Setup Script
+      - name: Setup and Start Application
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.AWS_SERVER_HOST }}
           username: ${{ secrets.AWS_SERVER_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-            sudo apt update
-            sudo apt install -y nodejs npm
+            # bash <<EOF
+            # #!/bin/bash
+            # set -e
+            sudo apt update && sudo apt install -y nodejs npm
             sudo npm install -g pm2
-
-      - name: Run Deployment Script
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.AWS_SERVER_HOST }}
-          username: ${{ secrets.AWS_SERVER_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
-          script: |
             cd ~/node-app
             npm install
-            pm2 restart index.js --name "node-app"
+            pm2 restart index.js --name "node-app" || pm2 start index.js --name "node-app"
+            EOF
 
+      # Revoke SSH Access Dynamically
       - name: Revoke SSH Access for Runner IP
-        run: |
-          IP=$(curl -s https://api64.ipify.org)
-          aws ec2 revoke-security-group-ingress \
-            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
-            --protocol tcp \
-            --port 22 \
-            --cidr ${IP}/32 \
-            --region ${{ secrets.AWS_REGION }}
+        run: node scripts/manage-ssh-access.js revoke
