@@ -34,11 +34,11 @@ jobs:
         run: |
           IP=$(curl -s https://checkip.amazonaws.com)
           aws ec2 authorize-security-group-ingress \
-            --group-id ${{ env.AWS_SECURITY_GROUP_ID }} \
+            --group-id ${{ vars.AWS_SECURITY_GROUP_ID }} \
             --protocol tcp \
             --port 22 \
             --cidr ${IP}/32 \
-            --region ${{ env.AWS_REGION }}
+            --region ${{ vars.AWS_REGION }}
 
       # Deploy Code to Server
       - name: Copy Files to Server
