@@ -44,8 +44,8 @@ jobs:
       - name: Copy Files to Server
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ env.AWS_SERVER_HOST }}
-          username: ${{ env.AWS_SERVER_USER }}
+          host: ${{ vars.AWS_SERVER_HOST }}
+          username: ${{ vars.AWS_SERVER_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           source: "."
           target: "~/node-app"
@@ -54,8 +54,8 @@ jobs:
       - name: Setup and Start Application
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: ${{ secrets.AWS_SERVER_HOST }}
-          username: ${{ secrets.AWS_SERVER_USER }}
+          host: ${{ vars.AWS_SERVER_HOST }}
+          username: ${{ vars.AWS_SERVER_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
            
@@ -71,8 +71,8 @@ jobs:
         run: |
           IP=$(curl -s https://checkip.amazonaws.com)
           aws ec2 revoke-security-group-ingress \
-            --group-id ${{ env.AWS_SECURITY_GROUP_ID }} \
+            --group-id ${{ vars.AWS_SECURITY_GROUP_ID }} \
             --protocol tcp \
             --port 22 \
             --cidr ${IP}/32 \
-            --region ${{ env.AWS_REGION }}
+            --region ${{ vars.AWS_REGION }}
