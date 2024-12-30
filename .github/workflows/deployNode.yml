@@ -20,13 +20,17 @@ jobs:
         with:
           node-version: '18'
 
-      # Install Dependencies
-      - name: Install Dependencies
-        run: npm install
 
-      # Allow SSH Access Dynamically
-      - name: Allow SSH Access from Runner IP
-        run: node scripts/manage-ssh-access.js allow
+      # Allow SSH Access Dynamically Using AWS CLI
+      - name: Allow SSH Access for Runner IP
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 authorize-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${IP}/32 \
+            --region ${{ secrets.AWS_REGION }}
 
       # Deploy Code to Server
       - name: Copy Files to Server
@@ -46,9 +50,7 @@ jobs:
           username: ${{ secrets.AWS_SERVER_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-            # bash <<EOF
-            # #!/bin/bash
-            # set -e
+           
             sudo apt update && sudo apt install -y nodejs npm
             sudo npm install -g pm2
             cd ~/node-app
@@ -56,6 +58,13 @@ jobs:
             pm2 restart index.js --name "node-app" || pm2 start index.js --name "node-app"
             EOF
 
-      # Revoke SSH Access Dynamically
+      # Revoke SSH Access Dynamically Using AWS CLI
       - name: Revoke SSH Access for Runner IP
-        run: node scripts/manage-ssh-access.js revoke
+        run: |
+          IP=$(curl -s https://checkip.amazonaws.com)
+          aws ec2 revoke-security-group-ingress \
+            --group-id ${{ secrets.AWS_SECURITY_GROUP_ID }} \
+            --protocol tcp \
+            --port 22 \
+            --cidr ${IP}/32 \
+            --region ${{ secrets.AWS_REGION }}
