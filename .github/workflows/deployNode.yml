@@ -64,7 +64,7 @@ jobs:
             cd ~/node-app
             npm install
             pm2 restart index.js --name "node-app" || pm2 start index.js --name "node-app"
-            EOF
+          
 
       # Revoke SSH Access Dynamically Using AWS CLI
       - name: Revoke SSH Access for Runner IP
