@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # Add this line to enable manual triggering
 
 jobs:
   deploy:
@@ -14,7 +15,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
         
-        # Configure AWS Credentials
+      # Configure AWS Credentials
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v3
         with:
@@ -27,7 +28,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '18'
-
 
       # Allow SSH Access Dynamically Using AWS CLI
       - name: Allow SSH Access for Runner IP
@@ -58,13 +58,11 @@ jobs:
           username: ${{ vars.AWS_SERVER_USER }}
           key: ${{ secrets.AWS_SSH_KEY }}
           script: |
-           
             sudo apt update && sudo apt install -y nodejs npm
             sudo npm install -g pm2
             cd ~/node-app
             npm install
             pm2 restart index.js --name "node-app" || pm2 start index.js --name "node-app"
-          
 
       # Revoke SSH Access Dynamically Using AWS CLI
       - name: Revoke SSH Access for Runner IP
