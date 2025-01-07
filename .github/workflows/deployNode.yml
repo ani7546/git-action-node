@@ -1,10 +1,7 @@
 name: CI/CD Pipeline for Node.js App
 
 on:
-  push:
-    branches:
-      - main
-  workflow_dispatch: # Add this line to enable manual triggering
+  workflow_dispatch: # This allows manual triggering from the GitHub Actions tab
 
 jobs:
   deploy:
